@@ -216,7 +216,7 @@ class Network:
 
 t0 = time.clock()
 
-net = Network([784, 50, 10])
+net = Network([784, 100, 100, 100, 10])
 
 net.SGD()
 # print(net.accuracy(net.test_X, net.test_Y))
