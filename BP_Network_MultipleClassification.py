@@ -132,17 +132,19 @@ class Network:
             #     print("第", i, "轮，精确度：", test_acc)
 
 
-t0 = time.clock()
+# t0 = time.clock()
+#
+# net = Network([784, 100, 10])
+#
+# net.SGD()
+# # print(net.accuracy(net.test_X, net.test_Y))
+#
+# t = time.clock() - t0
+# print("\n耗时：", t, "s=", t / 60, "min")
 
-net = Network([784, 100, 10])
-
-net.SGD()
-# print(net.accuracy(net.test_X, net.test_Y))
-
-t = time.clock() - t0
-print("\n耗时：", t, "s=", t / 60, "min")
-
-# x = np.arange(32).reshape((2, 4, 4))
-# print(x)
-# col = Convolution.im2col(x, 3, 3)
-# print(col)
+x = np.arange(32).reshape((2, 4, 4))
+print(x)
+col = Convolution.im2col(x, 3, 3)
+print("col\n", col)
+xx = Convolution.col2im(col, x.shape, 3, 3)
+print("xx\n", xx)

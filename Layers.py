@@ -90,6 +90,13 @@ class Convolution:
         self.stride = stride
         self.pad = pad
 
+        self.x = None
+        self.col_x = None
+        self.col_w = None
+
+        self.dw = None
+        self.db = None
+
     @staticmethod
     def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
         """
@@ -121,6 +128,37 @@ class Convolution:
         col = col.transpose((0, 3, 4, 1, 2)).reshape((N * out_h * out_w, -1))
         return col
 
+    @staticmethod
+    def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
+        """
+        Parameters
+        ----------
+        col :
+        input_shape : 输入数据的形状（例：(10, 28, 28)）
+        filter_h :
+        filter_w
+        stride
+        pad
+
+        Returns
+        -------
+
+        """
+        N, H, W = input_shape
+        out_h = int(1 + (H + 2 * pad - filter_h) / stride)
+        out_w = int(1 + (W + 2 * pad - filter_w) / stride)
+        col = col.reshape((N, out_h, out_w, filter_h, filter_w)).transpose((0, 3, 4, 1, 2))
+
+        img = np.zeros((N, H + 2 * pad + stride - 1, W + 2 * pad + stride - 1))
+        for y in range(filter_h):
+            y_max = y + stride * out_h
+            for x in range(filter_w):
+                x_max = x + stride * out_w
+                img[:, y:y_max:stride, x:x_max:stride] = col[:, y, x, :, :]
+                # img[:, y:y_max:stride, x:x_max:stride] += col[:, y, x, :, :]
+
+        return img[:, pad:(H + pad), pad:(W + pad)]
+
     def forward(self, x):
         FN, FH, FW = self.w.shape
         N, H, W = x.shape
@@ -134,4 +172,18 @@ class Convolution:
         out = np.dot(col_x, col_w) + self.b
         out = out.reshape((N, out_h, out_w, -1)).transpose((0, 3, 1, 2))
 
+        self.x = x
+        self.col_x = col_x
+        self.col_w = col_w
+
         return out
+
+    def backward(self, dout):
+        FN, FH, FW = self.w.shape
+        dout = dout.transpose((0, 2, 3, 1)).reshape((-1, FN))
+
+        self.db = np.sum(dout, axis=0)
+        self.dw = np.dot(self.col_x.T, dout)
+        self.dw = self.dw.transpose((1, 0)).reshape((FN, FH, FW))
+
+        dcol = np.dot(dout, self.col_w.T)
