@@ -1,93 +1,11 @@
-import numpy as np
-import LoadData
+from LoadData import *
+from Layers import *
 import time
-
-
-class Affine:
-    def __init__(self, w, b):
-        self.w = w
-        self.b = b
-        self.x = None
-        self.dw = None
-        self.db = None
-
-    def forward(self, x):
-        self.x = x
-        return np.dot(x, self.w) + self.b
-
-    def backward(self, dout):
-        self.dw = np.dot(self.x.T, dout)
-        self.db = np.sum(dout, axis=0)
-        dx = np.dot(dout, self.w.T)
-        return dx  # return dx
-
-
-class Relu:
-    def __init__(self):
-        self.flag = None
-
-    def forward(self, x):
-        self.flag = x <= 0
-        return np.maximum(x, 0)
-
-    def backward(self, dout):
-        dout[self.flag] = 0
-        return dout  # return dx
-
-
-class Sigmoid:
-    def __init__(self):
-        self.out = None
-
-    def forward(self, x):
-        self.out = 1.0 / (1 + np.exp(-x))
-        return self.out
-
-    def backward(self, dout):
-        return dout * (1 - self.out) * self.out  # return dx
-
-
-class SoftmaxWithLoss:
-    def __init__(self):
-        self.loss = None
-        self.y = None  # one-hot
-        self.t = None  # one-hot
-
-    @staticmethod
-    def softmax(x):
-        max_xi = np.max(x, axis=1)
-        # print(max_xi)
-        exp_x = np.exp(x.T - max_xi)
-        sum_exp_xi = np.sum(exp_x, axis=0)
-        p = (exp_x / sum_exp_xi).T
-
-        # exp_x = np.exp(x)
-        # sum_exp_xi = np.sum(exp_x, axis=1)
-        #
-        # p = (exp_x.T - sum_exp_xi).T
-
-        # print(p)
-        return p
-
-    @staticmethod
-    def cross_entropy(y, t):
-        delta = 1e-7
-        return -np.sum(t * np.log(y + delta)) / t.shape[0]
-
-    def forward(self, x, t):
-        self.t = t  # one-hot
-        self.y = self.softmax(x)
-        self.loss = self.cross_entropy(self.y, self.t)
-        return self.loss
-
-    def backward(self, dout=1):
-        dx = dout * (self.y - self.t) / self.t.shape[0]
-        return dx
 
 
 class Network:
     def __init__(self, sizes):
-        self.X, self.Y, self.test_X, self.test_Y = LoadData.Load(one_hot=True).load_mnist()
+        self.X, self.Y, self.test_X, self.test_Y = Load(one_hot=True).load_mnist()
         self.sizes = sizes
         self.layers_num = len(sizes) - 1
 
@@ -148,7 +66,7 @@ class Network:
         batch_size = 100
         train_size = self.X.shape[0]
         epoch_num = 10000
-        lr = 0.1  # learning rate
+        lr = 1  # learning rate
         beta1 = 0.9
         beta2 = 0.999
         momentum = 1
@@ -223,3 +141,8 @@ net.SGD()
 
 t = time.clock() - t0
 print("\n耗时：", t, "s=", t / 60, "min")
+
+# x = np.arange(32).reshape((2, 4, 4))
+# print(x)
+# col = Convolution.im2col(x, 3, 3)
+# print(col)
