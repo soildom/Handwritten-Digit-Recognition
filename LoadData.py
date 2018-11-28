@@ -2,11 +2,12 @@ import numpy as np
 
 
 class Load:
-    def __init__(self, binary=False, bias=False, one_hot=False, normalize=True):
+    def __init__(self, binary=False, bias=False, one_hot=False, normalize=True, flatten=False):
         self.binary = binary
         self.bias = bias
         self.one_hot = one_hot
         self.normalize = normalize
+        self.flatten = flatten
 
     def load_mnist(self):
         X = np.load('AvailableData/train_img.npy')
@@ -46,9 +47,13 @@ class Load:
             test_Y = test_Y[ind]
             test_X = test_X[ind]
 
-        if self.bias:
-            X = np.column_stack((np.ones(X.shape[0]), X))
-            test_X = np.column_stack((np.ones(test_X.shape[0]), test_X))
+        # if self.bias:
+        #     X = np.column_stack((np.ones(X.shape[0]), X))
+        #     test_X = np.column_stack((np.ones(test_X.shape[0]), test_X))
+
+        if self.flatten:
+            X = X.reshape((60000, 28, 28))
+            test_X = test_X.reshape((10000, 28, 28))
 
         return X, Y, test_X, test_Y
 
