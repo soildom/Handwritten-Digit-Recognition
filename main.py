@@ -1,9 +1,9 @@
 import time
-from BP_Network_MultipleClassification import *
+from FC_Neural_Network import *
 
 t0 = time.clock()
 
-net = Network([784, 200, 150, 30, 10])
+net = Network([784, 158, 30, 10])
 
 net.train()
 

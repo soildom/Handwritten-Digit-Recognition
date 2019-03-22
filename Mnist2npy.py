@@ -52,4 +52,5 @@ class Mnist2npy:
         return Labels
 
 
-Mnist2npy()
+if __name__ == '__main__':
+    Mnist2npy()
