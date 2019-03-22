@@ -1,5 +1,6 @@
 from LoadData import *
 from Layers import *
+import matplotlib.pyplot as plt
 
 
 class ConvNet:
@@ -92,10 +93,8 @@ class ConvNet:
     def train(self):
         batch_size = 100
         train_size = self.X.shape[0]
-        epoch_num = 10000
+        iteration_num = 10000
         lr = 0.01  # learning rate
-        beta1 = 0.9
-        beta2 = 0.999
         momentum = 1
 
         # v_w = [np.zeros_like(w) for w in self.w]
@@ -107,15 +106,15 @@ class ConvNet:
         h_cw = np.zeros_like(self.conv_layers[0].w)
         h_cb = np.zeros_like(self.conv_layers[0].b)
 
-        flag = max(int(train_size / batch_size), 1)
+        epoch = max(int(train_size / batch_size), 1)
 
-        train_loss_list = list()
-        train_acc_list = list()
+        # train_loss_list = list()
+        # train_acc_list = list()
         test_loss_list = list()
         test_acc_list = list()
         plot_x = list()
 
-        for i in range(epoch_num):
+        for i in range(iteration_num):
             # print(i)
             batch_mask = np.random.choice(train_size, batch_size)
             x_batch = self.X[batch_mask]
@@ -155,7 +154,7 @@ class ConvNet:
             # self.conv_layers[0].w -= lr * grad_cw
             # self.conv_layers[0].b -= lr * grad_cb
 
-            if i % flag == 0:
+            if i % epoch == 0:
                 plot_x.append(i)
 
                 # tmp = self.predict(self.X)
@@ -170,7 +169,30 @@ class ConvNet:
                 test_loss_list.append(test_loss)
                 test_acc_list.append(test_acc)
 
-                print("第", i, "轮，test_loss-->", test_loss, "test_acc-->", test_acc)
+                print("第", i, "次迭代，test_loss-->", test_loss, "test_acc-->", test_acc)
+
+        plot_x.append(iteration_num)
+
+        # tmp = self.predict(self.X)
+        # train_loss_list.append(self.last_layer.forward(tmp, self.Y))
+        # tmp = np.argmax(tmp, axis=1)
+        # train_acc_list.append(np.sum(tmp == self.T) / self.T.shape[0])
+
+        tmp = self.predict(self.test_X)
+        test_loss = self.last_layer.forward(tmp, self.test_Y)
+        tmp = np.argmax(tmp, axis=1)
+        test_acc = np.sum(tmp == self.test_T) / self.test_T.shape[0]
+        test_loss_list.append(test_loss)
+        test_acc_list.append(test_acc)
+
+        print("第", iteration_num, "次迭代，test_loss-->", test_loss, "test_acc-->", test_acc)
+
+        # plt.plot(plot_x, train_loss_list, '--', label='train_loss')
+        plt.plot(plot_x, test_loss_list, '--', label='test_loss')
+        plt.xlabel('iteration')
+        plt.ylabel('loss')
+        plt.legend()
+        plt.show()
 
 
 net = ConvNet([100, 10])

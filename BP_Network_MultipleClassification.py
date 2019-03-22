@@ -10,12 +10,12 @@ class Network:
         self.test_T = np.argmax(self.test_Y, axis=1)
 
         self.layers_num = len(sizes) - 1
-        weight_init_std = 0.001
+        # weight_init_std = 0.1
 
         # self.w = [np.ones((x, y)) for x, y in zip(sizes[:-1], sizes[1:])]
         # self.b = [np.ones((1, y)) for y in sizes[1:]]
 
-        self.w = [weight_init_std * np.random.randn(x, y) for x, y in zip(sizes[:-1], sizes[1:])]
+        self.w = [np.random.randn(x, y) / np.sqrt(x / 2) for x, y in zip(sizes[:-1], sizes[1:])]
         self.b = [np.zeros((1, y)) for y in sizes[1:]]
 
         self.layers = list()
@@ -53,16 +53,16 @@ class Network:
         for layer in layers:
             dout = layer.backward(dout)
 
-        grad_w = [self.layers[2 * i].dw for i in range(self.layers_num)]
-        grad_b = [self.layers[2 * i].db for i in range(self.layers_num)]
+        grad_w = [self.layers[2 * i].dw / 100 for i in range(self.layers_num)]
+        grad_b = [self.layers[2 * i].db / 100 for i in range(self.layers_num)]
 
         return grad_w, grad_b
 
     def train(self):
-        batch_size = 600
+        batch_size = 100
         train_size = self.X.shape[0]
-        epoch_num = 10000
-        lr = 0.02  # learning rate
+        iteration_num = 10000
+        lr = 5  # learning rate
         beta1 = 0.9
         beta2 = 0.999
         momentum = 1
@@ -76,7 +76,7 @@ class Network:
         # m_w = v_w.copy()
         # m_b = v_b.copy()
 
-        flag = max(int(train_size / batch_size), 1)
+        # epoch = max(int(train_size / batch_size), 1)
 
         train_loss_list = list()
         train_acc_list = list()
@@ -84,7 +84,7 @@ class Network:
         test_acc_list = list()
         plot_x = list()
 
-        for i in range(epoch_num):
+        for i in range(iteration_num):
             batch_mask = np.random.choice(train_size, batch_size)
             x_batch = self.X[batch_mask]
             y_batch = self.Y[batch_mask]
@@ -113,17 +113,20 @@ class Network:
 
                 # AdaGrad
                 # lr=0.1
-                h_w[j] += np.square(grad_w[j])
-                h_b[j] += np.square(grad_b[j])
+                # h_w[j] += np.square(grad_w[j])
+                # h_b[j] += np.square(grad_b[j])
+                #
+                # self.layers[2 * j].w -= lr * grad_w[j] / (np.sqrt(h_w[j]) + 1e-7)
+                # self.layers[2 * j].b -= lr * grad_b[j] / (np.sqrt(h_b[j]) + 1e-7)
 
-                self.layers[2 * j].w -= lr * grad_w[j] / (np.sqrt(h_w[j]) + 1e-7)
-                self.layers[2 * j].b -= lr * grad_b[j] / (np.sqrt(h_b[j]) + 1e-7)
+                self.layers[2 * j].w -= lr * grad_w[j]
+                self.layers[2 * j].b -= lr * grad_b[j]
 
             # test_acc = self.accuracy(self.test_X, self.test_Y)
             # # train_acc_list.append(test_acc)
             # print("第", i, "轮，loss-->", self.loss(x_batch, y_batch), "acc-->", test_acc)
 
-            if i % flag == 0:
+            if i % 10 == 0:
                 plot_x.append(i)
 
                 tmp = self.predict(self.X)
@@ -138,9 +141,9 @@ class Network:
                 test_loss_list.append(test_loss)
                 test_acc_list.append(test_acc)
 
-                print("第", i, "轮，test_loss-->", test_loss, "test_acc-->", test_acc)
+                print("第", i, "次迭代，test_loss-->", test_loss, "test_acc-->", test_acc)
 
-        plot_x.append(epoch_num)
+        plot_x.append(iteration_num)
 
         tmp = self.predict(self.X)
         train_loss_list.append(self.last_layer.forward(tmp, self.Y))
@@ -154,11 +157,24 @@ class Network:
         test_loss_list.append(test_loss)
         test_acc_list.append(test_acc)
 
-        print("第", epoch_num, "轮，test_loss-->", test_loss, "test_acc-->", test_acc)
+        print("第", iteration_num, "次迭代，test_loss-->", test_loss, "test_acc-->", test_acc)
 
-        plt.plot(plot_x, train_loss_list, '--', label='train_loss')
-        plt.plot(plot_x, test_loss_list, '--', label='test_loss')
-        plt.xlabel('epoch')
+        plt.figure(figsize=(20, 10))
+
+        plt.subplot(2, 1, 1)
+        plt.plot(plot_x, train_loss_list, '.--', label='train_loss')
+        plt.plot(plot_x, test_loss_list, '.-', label='test_loss')
         plt.ylabel('loss')
         plt.legend()
+        plt.grid()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(plot_x, train_acc_list, '.--', label='train_acc')
+        plt.plot(plot_x, test_acc_list, '.-', label='test_acc')
+        plt.xlabel('iteration')
+        plt.ylabel('accuracy')
+        plt.legend()
+        plt.grid()
+
+        plt.savefig("pp.svg")
         plt.show()
