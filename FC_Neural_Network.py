@@ -54,10 +54,10 @@ class Network:
     def getGradient(self):
         dout = self.softmax_layer.backward(1)
 
-        self.layers.reverse()
-        for layer in self.layers:
-            dout = layer.backward(dout)
-        self.layers.reverse()
+        i = len(self.layers) - 1
+        while i >= 0:
+            dout = self.layers[i].backward(dout)
+            i = i - 1
 
         grad_w = [self.layers[2 * i].dw / 100 for i in range(self.layers_num)]
         grad_b = [self.layers[2 * i].db / 100 for i in range(self.layers_num)]
@@ -69,12 +69,12 @@ class Network:
         train_size = self.X.shape[0]
         iteration_num = 10000
         lr = 5  # learning rate
-        beta1 = 0.9
-        beta2 = 0.999
-        momentum = 1
+        # beta1 = 0.9
+        # beta2 = 0.999
+        momentum = 0.1
 
-        # v_w = [np.zeros_like(w) for w in self.w]
-        # v_b = [np.zeros_like(b) for b in self.b]
+        v_w = [np.zeros_like(w) for w in self.w]
+        v_b = [np.zeros_like(b) for b in self.b]
 
         # h_w = [np.zeros_like(w) for w in self.w]
         # h_b = [np.zeros_like(b) for b in self.b]
@@ -95,8 +95,8 @@ class Network:
             x_batch = self.X[batch_mask]
             y_batch = self.Y[batch_mask]
 
-            train_final_layer_value = self.finalLayerValue(x_batch)
-            train_loss_value = self.getLossValue(train_final_layer_value, y_batch)
+            train_last_layer_value = self.finalLayerValue(x_batch)
+            train_loss_value = self.getLossValue(train_last_layer_value, y_batch)
             grad_w, grad_b = self.getGradient()
 
             # tmp_lr = lr * np.sqrt(1 - beta2 ** (i + 1)) / (1 - beta1 ** (i + 1))
@@ -113,11 +113,11 @@ class Network:
                 # self.layers[2 * j].b -= tmp_lr * m_b[j] / (np.sqrt(v_b[j] - np.min(v_b[j])) + 1e-7)
 
                 # Momentum
-                # v_w[j] = momentum * v_w[j] - lr * grad_w[j]
-                # v_b[j] = momentum * v_b[j] - lr * grad_b[j]
-                #
-                # self.layers[2 * j].w += v_w[j]
-                # self.layers[2 * j].b += v_b[j]
+                v_w[j] = momentum * v_w[j] - lr * grad_w[j]
+                v_b[j] = momentum * v_b[j] - lr * grad_b[j]
+
+                self.layers[2 * j].w += v_w[j]
+                self.layers[2 * j].b += v_b[j]
 
                 # AdaGrad
                 # lr=0.1
@@ -127,8 +127,9 @@ class Network:
                 # self.layers[2 * j].w -= lr * grad_w[j] / (np.sqrt(h_w[j]) + 1e-7)
                 # self.layers[2 * j].b -= lr * grad_b[j] / (np.sqrt(h_b[j]) + 1e-7)
 
-                self.layers[2 * j].w -= lr * grad_w[j]
-                self.layers[2 * j].b -= lr * grad_b[j]
+                # SGD
+                # self.layers[2 * j].w -= lr * grad_w[j]
+                # self.layers[2 * j].b -= lr * grad_b[j]
 
             # test_acc = self.accuracy(self.test_X, self.test_Y)
             # # train_acc_list.append(test_acc)
@@ -138,7 +139,7 @@ class Network:
                 plot_x.append(i)
 
                 train_loss_list.append(train_loss_value)
-                train_acc_list.append(self.getAccuracy(train_final_layer_value, y_batch))
+                train_acc_list.append(self.getAccuracy(train_last_layer_value, y_batch))
 
                 test_final_layer_value = self.finalLayerValue(self.test_X)
                 test_loss_list.append(self.getLossValue(test_final_layer_value, self.test_Y))

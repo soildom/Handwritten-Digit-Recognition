@@ -55,20 +55,27 @@ class ConvNet:
             x = layer.forward(x)
         return x
 
-    def loss(self, x, t):
-        y = self.predict(x)
+    def loss(self, y, t):
+        """
+        :param y: value of last layer
+        :param t: corret label
+        :return: value of loos function
+        """
+        # y = self.predict(x)
         return self.last_layer.forward(y, t)
 
-    def accuracy(self, x, t):
-        y = self.predict(x)
+    def accuracy(self, y, t):
+        """
+        :param y: value of last layer
+        :param t: corret label
+        :return: accuracy
+        """
         y = np.argmax(y, axis=1)
         if t.ndim != 1:
             t = np.argmax(t, axis=1)
         return np.sum(y == t) / t.shape[0]
 
-    def gradient(self, x, t):
-        l = self.loss(x, t)
-
+    def gradient(self):
         dout = self.last_layer.backward(1)
 
         layers = self.layers.copy()
@@ -100,11 +107,11 @@ class ConvNet:
         # v_w = [np.zeros_like(w) for w in self.w]
         # v_b = [np.zeros_like(b) for b in self.b]
 
-        h_w = [np.zeros_like(w) for w in self.w]
-        h_b = [np.zeros_like(b) for b in self.b]
-
-        h_cw = np.zeros_like(self.conv_layers[0].w)
-        h_cb = np.zeros_like(self.conv_layers[0].b)
+        # h_w = [np.zeros_like(w) for w in self.w]
+        # h_b = [np.zeros_like(b) for b in self.b]
+        #
+        # h_cw = np.zeros_like(self.conv_layers[0].w)
+        # h_cb = np.zeros_like(self.conv_layers[0].b)
 
         epoch = max(int(train_size / batch_size), 1)
 
@@ -122,7 +129,9 @@ class ConvNet:
 
             # print("计算梯度")
 
-            grad_w, grad_b, grad_cw, grad_cb = self.gradient(x_batch, y_batch)
+            train_last_layer_value = self.predict(x_batch)
+            train_loss_valye = self.loss(train_last_layer_value, y_batch)
+            grad_w, grad_b, grad_cw, grad_cb = self.gradient()
 
             # print("迭代")
 
@@ -134,25 +143,24 @@ class ConvNet:
                 # self.layers[2 * j].w += v_w[j]
                 # self.layers[2 * j].b += v_b[j]
 
-                # AdaGrad
-                # lr=0.1
-                h_w[j] += np.square(grad_w[j])
-                h_b[j] += np.square(grad_b[j])
+                # # AdaGrad
+                # # lr=0.1
+                # h_w[j] += np.square(grad_w[j])
+                # h_b[j] += np.square(grad_b[j])
+                # self.layers[2 * j].w -= lr * grad_w[j] / (np.sqrt(h_w[j]) + 1e-7)
+                # self.layers[2 * j].b -= lr * grad_b[j] / (np.sqrt(h_b[j]) + 1e-7)
 
-                self.layers[2 * j].w -= lr * grad_w[j] / (np.sqrt(h_w[j]) + 1e-7)
-                self.layers[2 * j].b -= lr * grad_b[j] / (np.sqrt(h_b[j]) + 1e-7)
+                self.layers[2 * j].w -= lr * grad_w[j]
+                self.layers[2 * j].b -= lr * grad_b[j]
 
-                # self.layers[2 * j].w -= lr * grad_w[j]
-                # self.layers[2 * j].b -= lr * grad_b[j]
+            # AdGrad
+            # h_cw += np.square(grad_cw)
+            # h_cb += np.square(grad_cb)
+            # self.conv_layers[0].w -= lr * grad_cw / (np.sqrt(h_cw) + 1e-7)
+            # self.conv_layers[0].b -= lr * grad_cb / (np.sqrt(h_cb) + 1e-7)
 
-            h_cw += np.square(grad_cw)
-            h_cb += np.square(grad_cb)
-
-            self.conv_layers[0].w -= lr * grad_cw / (np.sqrt(h_cw) + 1e-7)
-            self.conv_layers[0].b -= lr * grad_cb / (np.sqrt(h_cb) + 1e-7)
-
-            # self.conv_layers[0].w -= lr * grad_cw
-            # self.conv_layers[0].b -= lr * grad_cb
+            self.conv_layers[0].w -= lr * grad_cw
+            self.conv_layers[0].b -= lr * grad_cb
 
             if i % epoch == 0:
                 plot_x.append(i)
@@ -162,14 +170,11 @@ class ConvNet:
                 # tmp = np.argmax(tmp, axis=1)
                 # train_acc_list.append(np.sum(tmp == self.T) / self.T.shape[0])
 
-                tmp = self.predict(self.test_X)
-                test_loss = self.last_layer.forward(tmp, self.test_Y)
-                tmp = np.argmax(tmp, axis=1)
-                test_acc = np.sum(tmp == self.test_T) / self.test_T.shape[0]
-                test_loss_list.append(test_loss)
-                test_acc_list.append(test_acc)
+                test_last_value = self.predict(self.test_X)
+                test_loss_list.append(self.last_layer.forward(test_last_value, self.test_Y))
+                test_acc_list.append(self.accuracy(test_last_value, self.test_Y))
 
-                print("第", i, "次迭代，test_loss-->", test_loss, "test_acc-->", test_acc)
+                print("第", i, "次迭代，test_loss-->", test_loss_list[-1], "test_acc-->", test_acc_list[-1])
 
         plot_x.append(iteration_num)
 
@@ -178,14 +183,11 @@ class ConvNet:
         # tmp = np.argmax(tmp, axis=1)
         # train_acc_list.append(np.sum(tmp == self.T) / self.T.shape[0])
 
-        tmp = self.predict(self.test_X)
-        test_loss = self.last_layer.forward(tmp, self.test_Y)
-        tmp = np.argmax(tmp, axis=1)
-        test_acc = np.sum(tmp == self.test_T) / self.test_T.shape[0]
-        test_loss_list.append(test_loss)
-        test_acc_list.append(test_acc)
+        test_last_value = self.predict(self.test_X)
+        test_loss_list.append(self.last_layer.forward(test_last_value, self.test_Y))
+        test_acc_list.append(self.accuracy(test_last_value, self.test_Y))
 
-        print("第", iteration_num, "次迭代，test_loss-->", test_loss, "test_acc-->", test_acc)
+        print("第", iteration_num, "次迭代，test_loss-->", test_loss_list[-1], "test_acc-->", test_acc_list[-1])
 
         # plt.plot(plot_x, train_loss_list, '--', label='train_loss')
         plt.plot(plot_x, test_loss_list, '--', label='test_loss')
